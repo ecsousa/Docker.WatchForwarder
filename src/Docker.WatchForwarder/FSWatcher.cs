@@ -13,6 +13,7 @@ namespace Docker.WatchForwarder
         private FileSystemWatcher _watcher;
         private string _containerId;
         private string _containerPath;
+        private string _name;
         private HashSet<string> _touchIgnoreList;
         private HashSet<Process> _executingProcess;
         private Dictionary<string, CancellationTokenSource> _delayedTasks;
@@ -22,6 +23,7 @@ namespace Docker.WatchForwarder
             _containerId = containerId;
             _sourcePath = sourcePath;
             _containerPath = containerPath;
+            _name = name;
 
             _watcher = new FileSystemWatcher(_sourcePath);
             _touchIgnoreList = new HashSet<string>();
@@ -133,6 +135,7 @@ namespace Docker.WatchForwarder
         protected virtual void Dispose(bool disposing)
         {
             _watcher.EnableRaisingEvents = false;
+            Console.WriteLine($"Stopped watching {_sourcePath} for {_name}:{_containerPath}");
 
             lock(_executingProcess)
             {

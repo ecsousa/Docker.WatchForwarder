@@ -6,6 +6,9 @@ using System.Threading;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
+using Docker.DotNet;
+using Docker.DotNet.Models;
+using System.Threading.Tasks;
 
 namespace Docker.WatchForwarder
 {
@@ -13,89 +16,41 @@ namespace Docker.WatchForwarder
     {
         static void Main(string[] args)
         {
-            var watchers =  ListRunningContainer()
-                .SelectMany(id => InspectContainer(id))
-                .Select(map => new FSWatcher(map.id, map.name, map.source, map.destination))
-                .ToArray();
+            Task.Run(MainAsync).Wait();
+        }
+
+        static async Task MainAsync()
+        {
+            var dockerClient = new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine"))
+                .CreateClient();
+
+            var monitor = new ContainersMonitor(dockerClient);
+
+            await monitor.Initialize();
 
             Console.WriteLine("Press CTRL-C to exit.");
 
             var exitSignal = new ManualResetEvent(false);
 
+            var monitorCancellationSource = new CancellationTokenSource();
             Console.CancelKeyPress += CancelKeyPressed;
 
             void CancelKeyPressed(object sender, ConsoleCancelEventArgs e)
             {
                 Console.WriteLine("Exiting...");
 
-                foreach(var watcher in watchers)
-                    watcher.Dispose();
+                monitorCancellationSource.Cancel();
 
-                exitSignal.Set();
-                e.Cancel = true;
+                monitor.Dispose();
             }
 
-            exitSignal.WaitOne();
-
-            Console.WriteLine("Done!");
-        }
-
-        private static IEnumerable<string> ListRunningContainer() {
-
-            var psi = new ProcessStartInfo();
-            psi.FileName = "docker";
-            psi.Arguments = "ps -q";
-            psi.UseShellExecute = false;
-            psi.RedirectStandardOutput = true;
-
-            var process = Process.Start(psi);
-
-            var line = process.StandardOutput.ReadLine();
-            while(line != null)
-            {
-                yield return line;
-                line = process.StandardOutput.ReadLine();
-            }
-        }
-
-        private static IEnumerable<(string id, string name, string source, string destination)> InspectContainer(string id)
-        {
-
-            var psi = new ProcessStartInfo();
-            psi.FileName = "docker";
-            psi.Arguments = $"inspect {id}";
-            psi.UseShellExecute = false;
-            psi.RedirectStandardOutput = true;
-
-            var process = Process.Start(psi);
-
-            var payload = JToken.Parse(process.StandardOutput.ReadToEnd());
-
-            var name = payload[0]["Name"].ToString().Substring(1);
-
-            var mountPoints = payload[0]["Mounts"]
-                .Where(item => item["Type"].ToString() == "bind");
-            
-            foreach(var mount in mountPoints)
-            {
-                var source = mount["Source"].ToString();
-                var destination = mount["Destination"].ToString();
-
-                if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    source = $"{source.Substring(1, 1)}:{source.Substring(2)}";
-
-                if(Directory.Exists(source))
-                {
-                    source = $"{source}/";
-                    destination = $"{destination}/";
-
-                    yield return (id, name, source, destination);
-                }
-
-            }
-
+            await dockerClient.System.MonitorEventsAsync(
+                new ContainerEventsParameters(),
+                monitor,
+                monitorCancellationSource.Token);
 
         }
+
 
     }
 }
