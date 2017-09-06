@@ -43,7 +43,9 @@ namespace Docker.WatchForwarder
                 var source = mount.Source;
                 var destination = mount.Destination;
 
+#if !NETFULL
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
                     source = $"{source.Substring(1, 1)}:{source.Substring(2)}";
 
                 if (Directory.Exists(source))
