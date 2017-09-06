@@ -9,6 +9,9 @@ namespace Docker.WatchForwarder
 {
     public class FSWatcher: IDisposable
     {
+        private const int DEBOUNCE_WATCHER_MILLISECONDS_TIMEOUT = 500;
+        private const int DEBOUNCE_DOCKER_MILLISECONDS_TIMEOUT = 100;
+
         private string _sourcePath;
         private FileSystemWatcher _watcher;
         private string _containerId;
@@ -66,7 +69,7 @@ namespace Docker.WatchForwarder
                 }
             }
 
-            await Task.Delay(500, cancellationToken);
+            await Task.Delay(DEBOUNCE_WATCHER_MILLISECONDS_TIMEOUT, cancellationToken);
 
             if(cancellationToken.IsCancellationRequested)
                 return;
@@ -85,7 +88,7 @@ namespace Docker.WatchForwarder
             try
             {
                 if(Execute($"touch {containerFileName}"))
-                    await Task.Delay(50);
+                    await Task.Delay(DEBOUNCE_DOCKER_MILLISECONDS_TIMEOUT);
             }
             finally
             {
