@@ -34,25 +34,69 @@ namespace Docker.WatchForwarder
             _delayedTasks = new Dictionary<string, CancellationTokenSource>();
 
             _watcher.Changed += OnFileChanged;
+            _watcher.Renamed += OnFileRenamed;
+            _watcher.Created += OnFileCreated;
+            _watcher.Deleted += OnFileDelated;
             _watcher.IncludeSubdirectories = true;
             _watcher.EnableRaisingEvents = true;
 
             Console.WriteLine($"Watching {sourcePath} for {name}:{containerPath}");
         }
 
+        private void OnFileDelated(object sender, FileSystemEventArgs e)
+        {
+            CancelTouch(e.FullPath, null);
+
+            var parentDirectory = Path.GetDirectoryName(e.FullPath);
+            while(!Directory.Exists(parentDirectory))
+            {
+                parentDirectory = Path.GetDirectoryName(parentDirectory);
+
+                if (parentDirectory == null) // Sanity check: went beyond root directory
+                    return;
+            }
+
+            DebounceTouch(parentDirectory);
+        }
+
+        private void OnFileCreated(object sender, FileSystemEventArgs e)
+        {
+            DebounceTouch(e.FullPath);
+        }
+
+        private void OnFileRenamed(object sender, RenamedEventArgs e)
+        {
+            CancelTouch(e.OldName, null);
+
+            DebounceTouch(e.FullPath);
+        }
+
         private void OnFileChanged(object sender, FileSystemEventArgs e)
+        {
+            DebounceTouch(e.FullPath);
+        }
+
+        private void DebounceTouch(string fileName)
         {
             var cancellationTokenSource = new CancellationTokenSource();
 
-            lock(_delayedTasks)
+            CancelTouch(fileName, cancellationTokenSource);
+
+            Task.Run(() => Touch(fileName, cancellationTokenSource.Token));
+        }
+
+        private void CancelTouch(string fileName, CancellationTokenSource cancellationTokenSource)
+        {
+            lock (_delayedTasks)
             {
-                if(_delayedTasks.ContainsKey(e.FullPath))
-                    _delayedTasks[e.FullPath].Cancel();
+                if (_delayedTasks.ContainsKey(fileName))
+                    _delayedTasks[fileName].Cancel();
 
-                _delayedTasks[e.FullPath] = cancellationTokenSource;
+                if (cancellationTokenSource != null)
+                    _delayedTasks[fileName] = cancellationTokenSource;
+                else
+                    _delayedTasks.Remove(fileName);
             }
-
-            Task.Run(() => Touch(e.FullPath, cancellationTokenSource.Token));
         }
 
         private async Task Touch(string fileName, CancellationToken cancellationToken)
