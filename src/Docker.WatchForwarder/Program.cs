@@ -35,9 +35,28 @@ namespace Docker.WatchForwarder
             }
         }
 
+        private static Uri GetDockerEndpoint()
+        {
+            var dockerHost = Environment.GetEnvironmentVariable("DOCKER_HOST");
+
+            if(string.IsNullOrWhiteSpace(dockerHost))
+            {
+#if !NETFULL
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+                    dockerHost = "npipe://./pipe/docker_engine";
+#if !NETFULL
+                else
+                    dockerHost = "unix:///var/run/docker.sock";
+#endif
+            }
+
+            return new Uri(dockerHost);
+        }
+
         static async Task MainAsync()
         {
-            var dockerClient = new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine"))
+            var dockerClient = new DockerClientConfiguration(GetDockerEndpoint())
                 .CreateClient();
 
             var monitor = new ContainersMonitor(dockerClient);

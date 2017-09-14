@@ -221,4 +221,3 @@ namespace Docker.WatchForwarder
         #endregion
 
     }
-}
