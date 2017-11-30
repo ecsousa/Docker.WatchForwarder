@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' != 'net45' ">

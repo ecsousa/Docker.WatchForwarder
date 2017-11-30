@@ -7,17 +7,15 @@ using System.Threading.Tasks;
 
 namespace Docker.WatchForwarder
 {
-    public class FSWatcher: IDisposable
+    public class FSWatcher : IDisposable
     {
         private const int DEBOUNCE_WATCHER_MILLISECONDS_TIMEOUT = 500;
-        private const int DEBOUNCE_DOCKER_MILLISECONDS_TIMEOUT = 100;
 
         private string _sourcePath;
         private FileSystemWatcher _watcher;
         private string _containerId;
         private string _containerPath;
         private string _name;
-        private HashSet<string> _touchIgnoreList;
         private HashSet<Process> _executingProcess;
         private Dictionary<string, CancellationTokenSource> _delayedTasks;
 
@@ -29,7 +27,6 @@ namespace Docker.WatchForwarder
             _name = name;
 
             _watcher = new FileSystemWatcher(_sourcePath);
-            _touchIgnoreList = new HashSet<string>();
             _executingProcess = new HashSet<Process>();
             _delayedTasks = new Dictionary<string, CancellationTokenSource>();
 
@@ -46,17 +43,6 @@ namespace Docker.WatchForwarder
         private void OnFileDelated(object sender, FileSystemEventArgs e)
         {
             CancelTouch(e.FullPath, null);
-
-            var parentDirectory = Path.GetDirectoryName(e.FullPath);
-            while(!Directory.Exists(parentDirectory))
-            {
-                parentDirectory = Path.GetDirectoryName(parentDirectory);
-
-                if (parentDirectory == null) // Sanity check: went beyond root directory
-                    return;
-            }
-
-            DebounceTouch(parentDirectory);
         }
 
         private void OnFileCreated(object sender, FileSystemEventArgs e)
@@ -101,69 +87,78 @@ namespace Docker.WatchForwarder
 
         private async Task Touch(string fileName, CancellationToken cancellationToken)
         {
-            var containerFileName = fileName
-                .Replace(_sourcePath, _containerPath)
-                .Replace("\\", "/");
-
-            lock(_touchIgnoreList)
-            {
-                if(_touchIgnoreList.Contains(containerFileName))
-                {
-                    return; // Prevent bouncing events publish from Docker to Windows back to Docker
-                }
-            }
+            var containerFileName = TranslateFileName(fileName);
 
             await Task.Delay(DEBOUNCE_WATCHER_MILLISECONDS_TIMEOUT, cancellationToken);
 
-            if(cancellationToken.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested)
                 return;
 
-            lock(_delayedTasks)
+            lock (_delayedTasks)
             {
-                if(_delayedTasks.ContainsKey(fileName) && _delayedTasks[fileName].Token == cancellationToken)
+                if (_delayedTasks.ContainsKey(fileName) && _delayedTasks[fileName].Token == cancellationToken)
                     _delayedTasks.Remove(fileName);
             }
 
-            lock(_touchIgnoreList)
-            {
-                _touchIgnoreList.Add(containerFileName);
-            }
+            var permission = await Execute($"stat -c%a {containerFileName}");
 
-            try
+            if (permission.success)
             {
-                if(Execute($"touch {containerFileName}"))
-                    await Task.Delay(DEBOUNCE_DOCKER_MILLISECONDS_TIMEOUT);
-            }
-            finally
-            {
-                lock(_touchIgnoreList)
+                if(permission.output.Length < 3)
                 {
-                    _touchIgnoreList.Remove(containerFileName);
+                    Console.WriteLine($"Could not get permission from stat's return: {permission.output}");
+                    return;
+                }
+
+                var chmodResult = await Execute($"chmod {permission.output.Substring(0, 3)} {containerFileName}");
+
+                if(!chmodResult.success)
+                {
+                    Console.WriteLine($"chmod failed: {chmodResult.error}");
                 }
             }
-
+            else
+            {
+                Console.WriteLine($"Error getting permissions of {containerFileName}");
+                Console.WriteLine(permission.error);
+            }
         }
 
-        private bool Execute(string containerCommand)
+        private string TranslateFileName(string hostFileName)
+        {
+            return hostFileName
+                .Replace(_sourcePath, _containerPath)
+                .Replace("\\", "/")
+                .Replace(" ", "\\ ")
+                .Replace("*", "\\*");
+        }
+
+        private async Task<(bool success, string output, string error)> Execute(string containerCommand)
         {
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = false;
             psi.FileName = "docker";
             psi.Arguments = $"exec {_containerId} {containerCommand}";
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
 
             Console.WriteLine($"Executing: {psi.FileName} {psi.Arguments}");
 
             var process = Process.Start(psi);
-            lock(_executingProcess)
+            lock (_executingProcess)
             {
                 _executingProcess.Add(process);
             }
 
             try
             {
+                var outputTexts = await Task.WhenAll(
+                    process.StandardOutput.ReadToEndAsync(),
+                    process.StandardError.ReadToEndAsync());
+
                 process.WaitForExit();
 
-                return process.ExitCode == 0;
+                return (process.ExitCode == 0, outputTexts[0], outputTexts[1]);
             }
             finally
             {
@@ -184,9 +179,9 @@ namespace Docker.WatchForwarder
             _watcher.EnableRaisingEvents = false;
             Console.WriteLine($"Stopped watching {_sourcePath} for {_name}:{_containerPath}");
 
-            lock(_executingProcess)
+            lock (_executingProcess)
             {
-                foreach(var process in _executingProcess)
+                foreach (var process in _executingProcess)
                     process.WaitForExit();
             }
 
@@ -221,3 +216,4 @@ namespace Docker.WatchForwarder
         #endregion
 
     }
+}
