@@ -1,8 +1,18 @@
 # Docker.WatchForwarder
 
 This utility will connect to Docker service and watch every folder that has been mapped to
-Docker. Whenever a file is change, it will trigger a `touch` command to it on the Docker
+Docker. Whenever a file is change, it will trigger a `chmod` command to it on the Docker
 container.
+
+## Install
+
+1. Download latest pre-built binaries from [latest release](https://github.com/ecsousa/Docker.WatchForwarder/releases/latest)
+2. Unpack it
+3. Install as a service using command:
+
+```
+Docker.WatchForwarder.exe install --sudo
+```
 
 ## Why?
 
