@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace Docker.WatchForwarder
 {
-    public class ContainersMonitor: IProgress<JSONMessage>, IDisposable
+    public class ContainerWatcher: IProgress<JSONMessage>, IDisposable
     {
         private DockerClient _client;
-        private IDictionary<string, IList<FSWatcher>> _watchers = new Dictionary<string, IList<FSWatcher>>();
+        private IDictionary<string, IList<FileSystemWatcher>> _watchers = new Dictionary<string, IList<FileSystemWatcher>>();
 
-        public ContainersMonitor(DockerClient client)
+        public ContainerWatcher(DockerClient client)
         {
             _client = client;
         }
@@ -30,9 +30,9 @@ namespace Docker.WatchForwarder
             }
         }
 
-        private IList<FSWatcher> CreateWatchersForContainer(ContainerListResponse container)
+        private IList<FileSystemWatcher> CreateWatchersForContainer(ContainerListResponse container)
         {
-            var watchers = new List<FSWatcher>();
+            var watchers = new List<FileSystemWatcher>();
 
             var id = container.ID;
             var name = container.Names
@@ -59,7 +59,7 @@ namespace Docker.WatchForwarder
                     source = $"{source}/";
                     destination = $"{destination}/";
 
-                    watchers.Add(new FSWatcher(id, name, source, destination));
+                    watchers.Add(new FileSystemWatcher(id, name, source, destination));
                 }
 
             }
@@ -69,7 +69,7 @@ namespace Docker.WatchForwarder
 
         void IProgress<JSONMessage>.Report(JSONMessage value)
         {
-            IList<FSWatcher> containerWatchers;
+            IList<FileSystemWatcher> containerWatchers;
             switch(value.Status)
             {
                 case "start":

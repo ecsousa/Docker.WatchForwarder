@@ -7,26 +7,26 @@ using System.Threading.Tasks;
 
 namespace Docker.WatchForwarder
 {
-    public class FSWatcher : IDisposable
+    public class FileSystemWatcher : IDisposable
     {
         private const int DEBOUNCE_WATCHER_MILLISECONDS_TIMEOUT = 500;
 
         private string _sourcePath;
-        private FileSystemWatcher _watcher;
+        private System.IO.FileSystemWatcher _watcher;
         private string _containerId;
         private string _containerPath;
         private string _name;
         private HashSet<Process> _executingProcess;
         private Dictionary<string, CancellationTokenSource> _delayedTasks;
 
-        public FSWatcher(string containerId, string name, string sourcePath, string containerPath)
+        public FileSystemWatcher(string containerId, string name, string sourcePath, string containerPath)
         {
             _containerId = containerId;
             _sourcePath = sourcePath;
             _containerPath = containerPath;
             _name = name;
 
-            _watcher = new FileSystemWatcher(_sourcePath);
+            _watcher = new System.IO.FileSystemWatcher(_sourcePath);
             _executingProcess = new HashSet<Process>();
             _delayedTasks = new Dictionary<string, CancellationTokenSource>();
 

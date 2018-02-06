@@ -33,9 +33,9 @@ namespace Docker.WatchForwarder
             HostFactory.Run(configure =>
             {
 
-                configure.Service<WatcherService>(service =>
+                configure.Service<DockerWatcherService>(service =>
                 {
-                    service.ConstructUsing(name => new WatcherService(name));
+                    service.ConstructUsing(name => new DockerWatcherService(name));
                     service.WhenStarted(watcher => watcher.Start());
                     service.WhenStopped(watcher => watcher.Stop());
                 });
@@ -51,7 +51,7 @@ namespace Docker.WatchForwarder
 
         static void ExecuteService()
         {
-            var service = new WatcherService("Docker.WatchForwarder");
+            var service = new DockerWatcherService("Docker.WatchForwarder");
 
             service.Start();
 

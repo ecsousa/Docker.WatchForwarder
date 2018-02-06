@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Docker.WatchForwarder
 {
-    public class WatcherService
+    public class DockerWatcherService
     {
         private string name;
         public ManualResetEvent StoppedSignal { get; set; }
@@ -18,7 +18,7 @@ namespace Docker.WatchForwarder
         private Task WorkerTask;
         private CancellationTokenSource MonitorCancellationSource;
 
-        public WatcherService(string name)
+        public DockerWatcherService(string name)
         {
             this.name = name;
         }
@@ -49,7 +49,7 @@ namespace Docker.WatchForwarder
                 var dockerClient = new DockerClientConfiguration(GetDockerEndpoint())
                     .CreateClient();
 
-                var monitor = new ContainersMonitor(dockerClient);
+                var monitor = new ContainerWatcher(dockerClient);
 
                 try
                 {
