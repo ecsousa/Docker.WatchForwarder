@@ -37,7 +37,7 @@ namespace Docker.WatchForwarder
             _watcher.IncludeSubdirectories = true;
             _watcher.EnableRaisingEvents = true;
 
-            Console.WriteLine($"Watching {sourcePath} for {name}:{containerPath}");
+            Logger.Write($"Watching {sourcePath} for {name}:{containerPath}");
         }
 
         private void OnFileDelated(object sender, FileSystemEventArgs e)
@@ -106,7 +106,7 @@ namespace Docker.WatchForwarder
             {
                 if(permission.output.Length < 3)
                 {
-                    Console.WriteLine($"Could not get permission from stat's return: {permission.output}");
+                    Logger.Write($"Could not get permission from stat's return: {permission.output}");
                     return;
                 }
 
@@ -114,13 +114,13 @@ namespace Docker.WatchForwarder
 
                 if(!chmodResult.success)
                 {
-                    Console.WriteLine($"chmod failed: {chmodResult.error}");
+                    Logger.Write($"chmod failed: {chmodResult.error}");
                 }
             }
             else
             {
-                Console.WriteLine($"Error getting permissions of {containerFileName}");
-                Console.WriteLine(permission.error);
+                Logger.Write($"Error getting permissions of {containerFileName}");
+                Logger.Write(permission.error);
             }
         }
 
@@ -142,7 +142,7 @@ namespace Docker.WatchForwarder
             psi.RedirectStandardOutput = true;
             psi.RedirectStandardError = true;
 
-            Console.WriteLine($"Executing: {psi.FileName} {psi.Arguments}");
+            Logger.Write($"Executing: {psi.FileName} {psi.Arguments}");
 
             var process = Process.Start(psi);
             lock (_executingProcess)
@@ -177,7 +177,7 @@ namespace Docker.WatchForwarder
         protected virtual void Dispose(bool disposing)
         {
             _watcher.EnableRaisingEvents = false;
-            Console.WriteLine($"Stopped watching {_sourcePath} for {_name}:{_containerPath}");
+            Logger.Write($"Stopped watching {_sourcePath} for {_name}:{_containerPath}");
 
             lock (_executingProcess)
             {

@@ -34,11 +34,11 @@ namespace Docker.WatchForwarder
 
         public bool Stop()
         {
-            Console.WriteLine("Disconnecting from Docker...");
+            Logger.Write("Disconnecting from Docker...");
             Stopping = true;
             MonitorCancellationSource.Cancel();
             StoppedSignal.WaitOne();
-            Console.WriteLine("Stopped!");
+            Logger.Write("Stopped!");
             return true;
         }
 
@@ -55,14 +55,19 @@ namespace Docker.WatchForwarder
                 {
                     await monitor.Initialize(MonitorCancellationSource.Token);
                 }
-                catch(Exception)
+                catch(UnauthorizedAccessException)
                 {
-                    Console.WriteLine("Could not connect to Docker. Retrying in 3 seconds...");
+                    Logger.Write("Access to Docker Denied!");
+                    throw;
+                }
+                catch(Exception e)
+                {
+                    Logger.Write("Could not connect to Docker. Retrying in 3 seconds...");
                     await Task.Delay(3000, MonitorCancellationSource.Token);
                     continue;
                 }
 
-                Console.WriteLine("Connected to Docker! Awaiting for events...");
+                Logger.Write("Connected to Docker! Awaiting for events...");
 
                 var cancelTaskCompletionSource = new TaskCompletionSource<object>();
 
@@ -80,7 +85,7 @@ namespace Docker.WatchForwarder
 
                 await Task.WhenAny(monitorTask, cancelTaskCompletionSource.Task);
 
-                Console.WriteLine("Diconnected from docker.");
+                Logger.Write("Diconnected from docker.");
             }
 
             StoppedSignal?.Set();
