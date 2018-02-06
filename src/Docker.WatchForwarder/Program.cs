@@ -43,7 +43,7 @@ namespace Docker.WatchForwarder
                 configure.SetDescription("Docker FileSystem Watcher Forwarder");
                 configure.SetDisplayName("Docker.WatchForwarder");
                 configure.SetServiceName("Docker.WatchForwarder");
-                configure.RunAsPrompt();
+                configure.RunAsLocalSystem();
             });
         
         }
