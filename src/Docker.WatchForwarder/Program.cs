@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Topshelf;
 #endif
 
+
 namespace Docker.WatchForwarder
 {
     class Program
@@ -25,7 +26,6 @@ namespace Docker.WatchForwarder
             ExecuteService();
 #endif
         }
-
 
 #if NETFULL
         static void ConfigureSevice()
@@ -43,7 +43,7 @@ namespace Docker.WatchForwarder
                 configure.SetDescription("Docker FileSystem Watcher Forwarder");
                 configure.SetDisplayName("Docker.WatchForwarder");
                 configure.SetServiceName("Docker.WatchForwarder");
-                configure.RunAsNetworkService();
+                configure.RunAsPrompt();
             });
         
         }
