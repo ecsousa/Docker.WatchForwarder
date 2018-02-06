@@ -9,6 +9,9 @@ using System.Runtime.InteropServices;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using System.Threading.Tasks;
+#if NETFULL
+using Topshelf;
+#endif
 
 namespace Docker.WatchForwarder
 {
@@ -16,88 +19,50 @@ namespace Docker.WatchForwarder
     {
         static void Main(string[] args)
         {
-            try
+#if NETFULL
+            ConfigureSevice();
+#else
+            ExecuteService();
+#endif
+        }
+
+
+#if NETFULL
+        static void ConfigureSevice()
+        {
+            HostFactory.Run(configure =>
             {
-                Task.Run(MainAsync).Wait();
-            }
-            catch(AggregateException aggregatedExeption)
-            {
-                aggregatedExeption.Handle(ex =>
+
+                configure.Service<WatcherService>(service =>
                 {
-                    if(ex is TimeoutException)
-                    {
-                        Console.Error.WriteLine("Error connecting to Docker! Is it running?");
-                        return true;
-                    }
-
-                    return false;
+                    service.ConstructUsing(name => new WatcherService(name));
+                    service.WhenStarted(watcher => watcher.Start());
+                    service.WhenStopped(watcher => watcher.Stop());
                 });
-            }
+
+                configure.SetDescription("Docker FileSystem Watcher Forwarder");
+                configure.SetDisplayName("Docker.WatchForwarder");
+                configure.SetServiceName("Docker.WatchForwarder");
+                configure.RunAsNetworkService();
+            });
+        
         }
-
-        private static Uri GetDockerEndpoint()
-        {
-            var dockerHost = Environment.GetEnvironmentVariable("DOCKER_HOST");
-
-            if(string.IsNullOrWhiteSpace(dockerHost))
-            {
-#if !NETFULL
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
-                    dockerHost = "npipe://./pipe/docker_engine";
-#if !NETFULL
-                else
-                    dockerHost = "unix:///var/run/docker.sock";
-#endif
-            }
 
-            return new Uri(dockerHost);
-        }
-
-        static async Task MainAsync()
+        static void ExecuteService()
         {
-            var dockerClient = new DockerClientConfiguration(GetDockerEndpoint())
-                .CreateClient();
+            var service = new WatcherService("Docker.WatchForwarder");
 
-            var monitor = new ContainersMonitor(dockerClient);
+            service.Start();
 
-            await monitor.Initialize();
-
-            Console.WriteLine("Press CTRL-C to exit.");
-
-            var exitSignal = new ManualResetEvent(false);
-
-            var monitorCancellationSource = new CancellationTokenSource();
             Console.CancelKeyPress += CancelKeyPressed;
-
             void CancelKeyPressed(object sender, ConsoleCancelEventArgs e)
             {
-                Console.WriteLine("Exiting...");
-
-                monitorCancellationSource.Cancel();
-
-                monitor.Dispose();
-
+                service.Stop();
                 e.Cancel = true;
             }
 
-            var cancelTaskCompletionSource = new TaskCompletionSource<object>();
-            ThreadPool.RegisterWaitForSingleObject(
-                monitorCancellationSource.Token.WaitHandle,
-                (o , timeout) => { cancelTaskCompletionSource.SetResult(null); },
-                null,
-                -1,
-                true);
-
-            var monitorTask = dockerClient.System.MonitorEventsAsync(
-                new ContainerEventsParameters(),
-                monitor,
-                monitorCancellationSource.Token);
-
-            await Task.WhenAny(monitorTask, cancelTaskCompletionSource.Task);
-
-            Console.WriteLine("Disconnected from Docker.");
-
+            service.StoppedSignal.WaitOne();
         }
 
     }

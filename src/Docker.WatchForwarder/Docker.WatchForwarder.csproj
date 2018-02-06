@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.0;net45</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net452</TargetFrameworks>
   </PropertyGroup>
   
   <!-- .NET 4.5 references, compilation flags and build options -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -16,10 +16,12 @@
     <Reference Include="System.Security" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
+
+    <PackageReference Include="Topshelf" Version="4.0.3" />
   </ItemGroup>
 
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net45'">
-    <DefineConstants>NET45;NETFULL</DefineConstants>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net452'">
+    <DefineConstants>NET452;NET45;NETFULL</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
@@ -31,7 +33,7 @@
     <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net45' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net452' ">
     <PackageReference Include="ILLink.Tasks" Version="0.1.4-preview-906439" />
   </ItemGroup>
 

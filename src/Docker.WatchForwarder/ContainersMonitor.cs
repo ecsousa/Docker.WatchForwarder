@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Docker.WatchForwarder
@@ -20,9 +21,9 @@ namespace Docker.WatchForwarder
             _client = client;
         }
 
-        public async Task Initialize()
+        public async Task Initialize(CancellationToken cancellationToken)
         {
-            foreach (var container in await _client.Containers.ListContainersAsync(new ContainersListParameters()))
+            foreach (var container in await _client.Containers.ListContainersAsync(new ContainersListParameters(), cancellationToken))
             {
                 var containerWatchers = CreateWatchersForContainer(container);
                 _watchers.Add(container.ID, containerWatchers);
@@ -46,7 +47,12 @@ namespace Docker.WatchForwarder
 #if !NETFULL
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
-                    source = $"{source.Substring(1, 1)}:{source.Substring(2)}";
+                {
+                    if (source.StartsWith("/host_mnt/"))
+                        source = $"{source.Substring(10, 1)}:{source.Substring(11)}";
+                    else
+                        source = $"{source.Substring(1, 1)}:{source.Substring(2)}";
+                }
 
                 if (Directory.Exists(source))
                 {
