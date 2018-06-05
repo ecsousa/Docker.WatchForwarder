@@ -14,7 +14,6 @@ namespace Docker.WatchForwarder
     {
         private string name;
         public ManualResetEvent StoppedSignal { get; set; }
-        private bool Stopping = false;
         private Task WorkerTask;
         private CancellationTokenSource MonitorCancellationSource;
 
@@ -26,7 +25,6 @@ namespace Docker.WatchForwarder
         public bool Start()
         {
             StoppedSignal = new ManualResetEvent(false);
-            Stopping = false;
             WorkerTask = Task.Run(WorkerMethod);
             MonitorCancellationSource = new CancellationTokenSource();
             return true;
@@ -35,7 +33,6 @@ namespace Docker.WatchForwarder
         public bool Stop()
         {
             Logger.Write("Disconnecting from Docker...");
-            Stopping = true;
             MonitorCancellationSource.Cancel();
             StoppedSignal.WaitOne();
             Logger.Write("Stopped!");
@@ -62,6 +59,9 @@ namespace Docker.WatchForwarder
                 }
                 catch(Exception e)
                 {
+                    Logger.Write("Exception type: {0}", e.GetType().Name);
+                    Logger.Write(e.Message);
+                    Logger.Write(e.StackTrace);
                     Logger.Write("Could not connect to Docker. Retrying in 3 seconds...");
                     await Task.Delay(3000, MonitorCancellationSource.Token);
                     continue;

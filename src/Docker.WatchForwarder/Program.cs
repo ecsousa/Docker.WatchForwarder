@@ -20,7 +20,11 @@ namespace Docker.WatchForwarder
     {
         static void Main(string[] args)
         {
+
 #if NETFULL
+            //while (!System.Diagnostics.Debugger.IsAttached)
+            //    Thread.Sleep(500);
+
             ConfigureSevice();
 #else
             ExecuteService();

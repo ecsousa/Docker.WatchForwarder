@@ -44,22 +44,31 @@ namespace Docker.WatchForwarder
                 var source = mount.Source;
                 var destination = mount.Destination;
 
+                if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(destination))
+                    continue;
+
+                try {
 #if !NETFULL
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
-                {
-                    if (source.StartsWith("/host_mnt/"))
-                        source = $"{source.Substring(10, 1)}:{source.Substring(11)}";
-                    else
-                        source = $"{source.Substring(1, 1)}:{source.Substring(2)}";
+                    {
+                        if (source.StartsWith("/host_mnt/"))
+                            source = $"{source.Substring(10, 1)}:{source.Substring(11)}";
+                        else
+                            source = $"{source.Substring(1, 1)}:{source.Substring(2)}";
+                    }
+
+                    if (Directory.Exists(source))
+                    {
+                        source = $"{source}/";
+                        destination = $"{destination}/";
+
+                        watchers.Add(new FileSystemWatcher(id, name, source, destination));
+                    }
                 }
-
-                if (Directory.Exists(source))
+                catch (Exception e)
                 {
-                    source = $"{source}/";
-                    destination = $"{destination}/";
-
-                    watchers.Add(new FileSystemWatcher(id, name, source, destination));
+                    Logger.Write($"Failed mapping {mount.Source} to {mount.Destination}");
                 }
 
             }
