@@ -25,14 +25,14 @@ namespace Docker.WatchForwarder
         }
 
         private static Action<string> WriteAction;
-        private static Action<string, string[]> WriteFormatAction;
+        private static Action<string, object[]> WriteFormatAction;
 
         public static void Write(string message)
         {
             WriteAction(message);
         }
 
-        public static void Write(string message, params string[] args)
+        public static void Write(string message, params object[] args)
         {
             WriteFormatAction(message, args);
         }

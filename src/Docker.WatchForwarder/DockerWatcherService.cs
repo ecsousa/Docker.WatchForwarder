@@ -13,7 +13,6 @@ namespace Docker.WatchForwarder
     public class DockerWatcherService
     {
         private string name;
-        public ManualResetEvent StoppedSignal { get; set; }
         private Task WorkerTask;
         private CancellationTokenSource MonitorCancellationSource;
 
@@ -24,9 +23,8 @@ namespace Docker.WatchForwarder
 
         public bool Start()
         {
-            StoppedSignal = new ManualResetEvent(false);
-            WorkerTask = Task.Run(WorkerMethod);
             MonitorCancellationSource = new CancellationTokenSource();
+            WorkerTask = Task.Run(WorkerMethod, MonitorCancellationSource.Token);
             return true;
         }
 
@@ -34,9 +32,20 @@ namespace Docker.WatchForwarder
         {
             Logger.Write("Disconnecting from Docker...");
             MonitorCancellationSource.Cancel();
-            StoppedSignal.WaitOne();
+
+            WaitWorker();
+
             Logger.Write("Stopped!");
             return true;
+        }
+
+        public void WaitWorker()
+        {
+            // Needed a spin wait. Cancelled tasks don't
+            // event finishes on Wait;
+            var spin = new SpinWait();
+            while (!WorkerTask.IsCompleted)
+                spin.SpinOnce();
         }
 
         private async Task WorkerMethod()
@@ -59,9 +68,9 @@ namespace Docker.WatchForwarder
                 }
                 catch(Exception e)
                 {
-                    Logger.Write("Exception type: {0}", e.GetType().Name);
-                    Logger.Write(e.Message);
-                    Logger.Write(e.StackTrace);
+                    //Logger.Write("Exception type: {0}", e.GetType().Name);
+                    //Logger.Write(e.Message);
+                    //Logger.Write(e.StackTrace);
                     Logger.Write("Could not connect to Docker. Retrying in 3 seconds...");
                     await Task.Delay(3000, MonitorCancellationSource.Token);
                     continue;
@@ -87,8 +96,6 @@ namespace Docker.WatchForwarder
 
                 Logger.Write("Diconnected from docker.");
             }
-
-            StoppedSignal?.Set();
         }
 
         private static Uri GetDockerEndpoint()

@@ -66,7 +66,7 @@ namespace Docker.WatchForwarder
                 e.Cancel = true;
             }
 
-            service.StoppedSignal.WaitOne();
+            service.WaitWorker();
         }
 
     }
