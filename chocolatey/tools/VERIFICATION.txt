@@ -1,0 +1,7 @@
+﻿Details on the binaries distributed on the package:
+
+Docker.WatchForwarder.*: I am the author of the binary -- https://github.com/ecsousa/Docker.WatchForwarder/
+Docker.DotNet.dll: Nuget package https://www.nuget.org/packages/Docker.DotNet/
+Newtonsoft.Json.dll: Nuget pacakge https://www.nuget.org/packages/Newtonsoft.Json/
+System.ValueTuple.dll: Nuget package https://www.nuget.org/packages/System.ValueTuple/
+Topshelf.dll: Nuget package https://www.nuget.org/packages/Topshelf/
