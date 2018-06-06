@@ -41,7 +41,7 @@ This is a nuspec. It mostly adheres to https://docs.nuget.org/create/Nuspec-Refe
     <!--<iconUrl>http://cdn.rawgit.com/__REPLACE_YOUR_REPO__/master/icons/docker.watchforwarder.png</iconUrl>-->
     <copyright>2018 Eduardo Sousa</copyright>
     <licenseUrl>https://raw.githubusercontent.com/ecsousa/Docker.WatchForwarder/master/chocolatey/tools/LICENSE.txt</licenseUrl>
-    <requireLicenseAcceptance>true</requireLicenseAcceptance>-->
+    <!--<requireLicenseAcceptance>true</requireLicenseAcceptance>-->
     <projectSourceUrl>https://github.com/ecsousa/Docker.WatchForwarder/</projectSourceUrl>
     <!--<docsUrl>At what url are the software docs located?</docsUrl>-->
     <!--<mailingListUrl></mailingListUrl>-->
