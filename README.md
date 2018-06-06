@@ -4,14 +4,13 @@ This utility will connect to Docker service and watch every folder that has been
 Docker. Whenever a file is change, it will trigger a `chmod` command to it on the Docker
 container.
 
-## Install
+## Install using Chocolatey
 
-1. Download latest pre-built binaries from [latest release](https://github.com/ecsousa/Docker.WatchForwarder/releases/latest)
-2. Unpack it
-3. Install as a service using command:
+1. Make sure you have [Chocolatey](https://chocolatey.org/) installed.
+2. Run the command in a elevated prompt:
 
 ```
-Docker.WatchForwarder.exe install --sudo
+choco install docker.watchforwarder
 ```
 
 ## Why?
